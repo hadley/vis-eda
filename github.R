@@ -105,6 +105,8 @@ hadley %>%
   ggplot(aes(week, time)) +
   geom_quasirandom()
 
+ggsave("github-example.png", width = 8, height = 5.5)
+
 # Hypothesis: the majority of commits <6am or >6pm
 # are because I'm in a different time zone
 

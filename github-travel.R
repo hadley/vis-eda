@@ -65,7 +65,7 @@ hadley_tz <- hadley %>%
     time = with_tz(time, "America/Chicago"),
     tz = coalesce(tz, "America/Chicago"),
     travel = ifelse(coalesce(travel, FALSE), "travelling", "at home"),
-    local_time = map2_int(hadley_tz$datetime, hadley_tz$tz, local_time) %>% hms::hms()
+    local_time = map2_int(datetime, tz, local_time) %>% hms::hms()
   )
 
 # Did it work???
@@ -116,3 +116,5 @@ hadley_tz %>%
   ggplot(aes(local_time, wday)) +
   geom_quasirandom() +
   facet_wrap(~ travel, ncol = 1)
+
+ggsave("combined-example.png", width = 8, height = 5.5)

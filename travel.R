@@ -120,3 +120,5 @@ ggplot(us_totals, aes(lon, lat)) +
     size = "Number of\nvisits"
   ) +
   hrbrthemes::theme_ipsum()
+
+ggsave("travel-example.png", width = 8, height = 5.5)
