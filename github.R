@@ -43,6 +43,7 @@ commits_json <- cache("github-commits",
     map_progress(possibly(repo_commits, NULL)) %>%
     compact()
 )
+View(commits_json)
 
 # Rectangling -------------------------------------------------------------
 
@@ -50,19 +51,22 @@ commits_flat <- commits_json %>% flatten() %>% unname()
 
 commits <- tibble(
   repo = full_name %>% rep(map_int(commits_json, length)),
-  sha = commits_flat %>% map_chr("sha", .default = NA),
   author = commits_flat %>% map_chr(c("author", "login"), .default = NA),
-  datetime = commits_flat %>% map_chr(c("commit", "author", "date"), .default = NA),
-  message = commits_flat %>% map_chr(c("commit", "message"), .default = NA)
+  datetime = commits_flat %>%
+    map_chr(c("commit", "author", "date"), .default = NA) %>%
+    parse_datetime() %>%
+    with_tz("America/Chicago"),
+  message = commits_flat %>% map_chr(c("commit", "message"), .default = NA),
+  sha = commits_flat %>% map_chr("sha", .default = NA)
 )
 
-commits <- commits %>% mutate(
-  datetime = parse_datetime(datetime) %>% with_tz("America/Chicago"),
-  date = as.Date(floor_date(datetime, "day")),
-  time = update(datetime, year = 2016, month = 1, mday = 1, second = 0)
-)
+commits <- commits %>%
+  mutate(
+    date = as.Date(floor_date(datetime, "day")),
+    time = update(datetime, year = 2016, month = 1, mday = 1, second = 0)
+  ) %>%
+  select(repo, author, date, time, datetime, sha, message)
 
-commits %>% count(sha, sort = TRUE) %>% filter(n > 1)
 commits %>% count(repo, sort = TRUE) %>% print(n = 10)
 commits %>% count(author, sort = TRUE)
 
@@ -74,8 +78,6 @@ hadley
 
 # Always a good idea to save a csv too
 write_csv(hadley, "github-commits.csv")
-
-
 
 # Now for some visualisation!! --------------------------------------------
 
@@ -105,10 +107,9 @@ hadley %>%
   ggplot(aes(week, time)) +
   geom_quasirandom()
 
-ggsave("github-example.png", width = 8, height = 5.5)
+# Fix days of week!
 
-# Hypothesis: the majority of commits <6am or >6pm
-# are because I'm in a different time zone
+ggsave("github-example.png", width = 8, height = 5.5)
 
 # What does my average week look like?
 hadley %>%
@@ -116,9 +117,5 @@ hadley %>%
   ggplot(aes(time, wday)) +
   geom_quasirandom()
 
-hadley %>%
-  mutate(wday = wday(datetime, label = TRUE) %>% fct_shift(1) %>% fct_rev()) %>%
-  filter(hour(time) >= 6, hour(time) <= 18) %>%
-  ggplot(aes(time, wday)) +
-  geom_quasirandom()
-
+# Hypothesis: the majority of commits <6am or >6pm
+# are because I'm in a different time zone
